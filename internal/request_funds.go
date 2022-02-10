@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -24,8 +25,9 @@ func (s *Server) RequestFunds(
 	ctx context.Context, req *faucetpb.FundingRequest,
 ) (*faucetpb.FundingResponse, error) {
 	if req.WalletAddress == "" {
-		return nil, status.Errorf(codes.InvalidArgument, "Request needs a valid ETH wallet address")
+		return nil, status.Errorf(codes.InvalidArgument, "Request needs a valid Ronin wallet address")
 	}
+	req.WalletAddress = strings.Replace(req.WalletAddress, "ronin:", "0x", -1)
 	ipAddress, err := s.getIPAddress(ctx)
 	if err != nil {
 		log.WithError(err).Error("Could not fetch IP from request")
@@ -41,7 +43,7 @@ func (s *Server) RequestFunds(
 
 	// Check if ip should be rate limited.
 	if !s.rateLimiter.shouldAllowRequest(ipAddress, req.WalletAddress) {
-		return nil, status.Error(codes.PermissionDenied, "Funded too recently")
+		return nil, status.Error(codes.PermissionDenied, "Leave something for the rest dude!")
 	}
 
 	log.WithFields(logrus.Fields{
@@ -50,8 +52,8 @@ func (s *Server) RequestFunds(
 	}).Info("Attempting to fund address")
 	txHash, err := s.fundAndWait(common.HexToAddress(req.WalletAddress))
 	if err != nil {
-		log.WithError(err).Error("Could not send goerli transaction")
-		return nil, status.Errorf(codes.Internal, "Could not send goerli transaction: %v", err)
+		log.WithError(err).Error("Something went wrong, please reach me on GitHub")
+		return nil, status.Errorf(codes.Internal, "Could not send transaction: %v", err)
 	}
 
 	// Mark the ip and Ethereum address pair as funded for the rate limiter.
